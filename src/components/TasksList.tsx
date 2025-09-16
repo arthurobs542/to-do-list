@@ -1,78 +1,153 @@
 "use client";
 
+import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type Task = {
+  id: number;
+  text: string;
+  category: "DESIGN" | "PERSONAL" | "HOUSE";
+  completed: boolean;
+};
 
 export default function TasksList() {
-  const today = new Date().toLocaleDateString("pt-BR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: 1,
+      text: "Criar Design do projeto",
+      category: "DESIGN",
+      completed: false,
+    },
+    {
+      id: 2,
+      text: "Preparar apresentação",
+      category: "DESIGN",
+      completed: false,
+    },
+    {
+      id: 3,
+      text: "Alongar por 15 minutos",
+      category: "PERSONAL",
+      completed: false,
+    },
+    {
+      id: 4,
+      text: "Planejar sua refeição",
+      category: "PERSONAL",
+      completed: false,
+    },
+    {
+      id: 5,
+      text: "Revisar metas diárias antes de dormir. Adicionar novas se o tempo permitir",
+      category: "PERSONAL",
+      completed: false,
+    },
+    {
+      id: 6,
+      text: "Regar plantas internas",
+      category: "HOUSE",
+      completed: false,
+    },
+  ]);
+
+  const [newTask, setNewTask] = useState("");
+  const [newCategory, setNewCategory] = useState<Task["category"]>("PERSONAL");
+
+  const toggleTask = (id: number) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
+  };
+
+  const addTask = () => {
+    if (!newTask.trim()) return;
+
+    setTasks((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        text: newTask,
+        category: newCategory,
+        completed: false,
+      },
+    ]);
+
+    setNewTask("");
+  };
+
+  const renderTasksByCategory = (category: Task["category"]) => (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold text-muted-foreground tracking-widest">
+        {category}
+      </h2>
+      {tasks
+        .filter((task) => task.category === category)
+        .map((task) => (
+          <Card key={task.id} className="p-4 flex items-start gap-3">
+            <Checkbox
+              checked={task.completed}
+              onCheckedChange={() => toggleTask(task.id)}
+              id={`task-${task.id}`}
+            />
+            <label
+              htmlFor={`task-${task.id}`}
+              className={`text-base leading-snug ${
+                task.completed ? "line-through text-muted-foreground" : ""
+              }`}
+            >
+              {task.text}
+            </label>
+          </Card>
+        ))}
+    </div>
+  );
+
   return (
     <div className="max-w-md mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Hoje, {today}</h1>
+      {renderTasksByCategory("DESIGN")}
+      {renderTasksByCategory("PERSONAL")}
+      {renderTasksByCategory("HOUSE")}
 
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground tracking-widest">
-          DESIGN
-        </h2>
-        <Card className="p-4 flex items-center gap-3">
-          <Checkbox id="task-1" />
-          <label htmlFor="task-1" className="text-base">
-            Create icons for a dashboard
-          </label>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <Checkbox id="task-2" />
-          <label htmlFor="task-2" className="text-base">
-            Prepare a design presentation
-          </label>
-        </Card>
-      </div>
+      {/* Add new task */}
+      <div className="flex flex-col gap-3 pt-4">
+        <Input
+          placeholder="Write a task..."
+          value={newTask}
+          onChange={(e) => setNewTask(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addTask()}
+        />
 
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground tracking-widest">
-          PERSONAL
-        </h2>
-        <Card className="p-4 flex items-center gap-3">
-          <Checkbox id="task-3" />
-          <label htmlFor="task-3" className="text-base">
-            Stretch for 15 minutes
-          </label>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <Checkbox id="task-4" />
-          <label htmlFor="task-4" className="text-base">
-            Plan your meal
-          </label>
-        </Card>
-        <Card className="p-4 flex items-start gap-3">
-          <Checkbox id="task-5" />
-          <label htmlFor="task-5" className="text-base leading-snug">
-            Review daily goals before sleeping. <br />
-            Add some new if time permits
-          </label>
-        </Card>
-      </div>
+        <div className="flex gap-2">
+          <Select
+            value={newCategory}
+            onValueChange={(val) => setNewCategory(val as Task["category"])}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="DESIGN">Design</SelectItem>
+              <SelectItem value="PERSONAL">Personal</SelectItem>
+              <SelectItem value="HOUSE">House</SelectItem>
+            </SelectContent>
+          </Select>
 
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground tracking-widest">
-          HOUSE
-        </h2>
-        <Card className="p-4 flex items-center gap-3">
-          <Checkbox id="task-6" />
-          <label htmlFor="task-6" className="text-base">
-            Water indoor plants
-          </label>
-        </Card>
-      </div>
-
-      <div className="flex gap-2 pt-4">
-        <Input placeholder="Write a task..." />
-        <Button>Add</Button>
+          <Button onClick={addTask} className="flex-1">
+            Add
+          </Button>
+        </div>
       </div>
     </div>
   );
