@@ -1,12 +1,27 @@
 import TasksList from "@/components/TasksList";
 
 export default function Home() {
+  const today = new Date().toLocaleDateString("pt-BR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
   return (
-    <div className="p-4 items-center bg-amber-50 min-h-screen flex flex-col">
-      <h1 className="text-3xl font-bold text-foreground mb-6 text-center">
-        Gerenciador de Tarefas
+    <div className="p-4 items-center bg-gray-200 min-h-screen flex flex-col">
+      <h1 className="text-3xl font-bold text-foreground mb-6 text-left w-full max-w-2xl">
+        Hoje,
+        <span className="text-muted-foreground text-2xl "> {today}</span>
       </h1>
-      <TasksList />
+
+      <div className="w-full max-w-2xl">
+        <h2 className="text-2xl font-bold text-foreground mb-4">
+          Suas Tarefas
+        </h2>
+        <p className="text-muted-foreground mb-6 text-left">
+          Adicione tarefas para começar a organizar seu dia!
+        </p>
+        <TasksList />
+      </div>
     </div>
   );
 }
