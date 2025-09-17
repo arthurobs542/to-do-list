@@ -28,13 +28,13 @@ type Task = {
 };
 
 export default function TasksList() {
-  const [categories, setCategories] = useState<string[]>(["PERSONAL"]);
+  const [categories, setCategories] = useState<string[]>(["Geral"]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
-  const [newCategory, setNewCategory] = useState<string>("PERSONAL");
+  const [newCategory, setNewCategory] = useState<string>("Geral");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
-  const [editCategory, setEditCategory] = useState<string>("PERSONAL");
+  const [editCategory, setEditCategory] = useState<string>("Geral");
   const [draggedId, setDraggedId] = useState<number | null>(null);
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -142,143 +142,152 @@ export default function TasksList() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-2 space-y-6">
-      <Accordion type="multiple" defaultValue={["PERSONAL"]}>
-        {categories.map((category) => (
-          <AccordionItem key={category} value={category}>
-            <AccordionTrigger>
-              {editingCategory === category ? (
-                <div className="flex items-center gap-2 w-full">
-                  <Input
-                    value={editCategoryName}
-                    onChange={(e) => setEditCategoryName(e.target.value)}
-                    className="w-32"
-                  />
-                  <Button size="sm" onClick={saveEditCategory}>
-                    Salvar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingCategory(null)}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 w-full">
-                  <span className="text-sm font-semibold text-muted-foreground tracking-widest">
-                    {category}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => startEditCategory(category)}
-                  >
-                    <Edit size={16} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => deleteCategory(category)}
-                  >
-                    <Trash size={16} />
-                  </Button>
-                </div>
-              )}
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-3">
-                {tasks
-                  .filter((task) => task.category === category)
-                  .map((task) => (
-                    <Card
-                      key={task.id}
-                      className="p-4 flex items-start gap-2 cursor-move"
-                      draggable
-                      onDragStart={() => onDragStart(task.id)}
-                      onDragOver={(e) => onDragOver(e, task.id)}
-                      onDragEnd={onDragEnd}
+    <div className="max-w-md mx-auto p-2 space-y-6 ">
+      <div className="space-y-2 bg-amber-50 h-[300px] overflow-y-auto p-4 rounded-md shadow-sm">
+        <Accordion
+          type="multiple"
+          defaultValue={["Geral"]}
+          className="w-full  rounded-md"
+        >
+          {categories.map((category) => (
+            <AccordionItem key={category} value={category}>
+              <AccordionTrigger>
+                {editingCategory === category ? (
+                  <div className="flex items-center gap-2 w-full">
+                    <Input
+                      value={editCategoryName}
+                      onChange={(e) => setEditCategoryName(e.target.value)}
+                      className="w-32"
+                    />
+                    <Button size="sm" onClick={saveEditCategory}>
+                      Salvar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingCategory(null)}
                     >
-                      {editingId === task.id ? (
-                        <div className="flex flex-col gap-2 w-full">
-                          <Input
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            className="mb-2"
-                          />
-                          <Select
-                            value={editCategory}
-                            onValueChange={(val) =>
-                              setEditCategory(val as string)
-                            }
-                          >
-                            <SelectTrigger className="w-full bg-white">
-                              <SelectValue placeholder="Categoria" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories.map((cat) => (
-                                <SelectItem key={cat} value={cat}>
-                                  {cat}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="flex gap-2 mt-2">
-                            <Button size="sm" onClick={() => saveEdit(task.id)}>
-                              Salvar
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 w-full ">
+                    <span className="text-sm font-semibold text-muted-foreground tracking-widest">
+                      {category}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => startEditCategory(category)}
+                    >
+                      <Edit size={16} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteCategory(category)}
+                    >
+                      <Trash size={16} />
+                    </Button>
+                  </div>
+                )}
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-3">
+                  {tasks
+                    .filter((task) => task.category === category)
+                    .map((task) => (
+                      <Card
+                        key={task.id}
+                        className="p-4 flex items-start gap-2 cursor-move"
+                        draggable
+                        onDragStart={() => onDragStart(task.id)}
+                        onDragOver={(e) => onDragOver(e, task.id)}
+                        onDragEnd={onDragEnd}
+                      >
+                        {editingId === task.id ? (
+                          <div className="flex flex-col gap-2 w-full">
+                            <Input
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              className="mb-2"
+                            />
+                            <Select
+                              value={editCategory}
+                              onValueChange={(val) =>
+                                setEditCategory(val as string)
+                              }
+                            >
+                              <SelectTrigger className="w-full bg-white">
+                                <SelectValue placeholder="Categoria" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>
+                                    {cat}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="flex gap-2 mt-2">
+                              <Button
+                                size="sm"
+                                onClick={() => saveEdit(task.id)}
+                              >
+                                Salvar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingId(null)}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 w-full">
+                            <Checkbox
+                              checked={task.completed}
+                              onCheckedChange={() => toggleTask(task.id)}
+                              id={`task-${task.id}`}
+                            />
+                            <label
+                              htmlFor={`task-${task.id}`}
+                              className={`text-base leading-snug flex-1 ${
+                                task.completed
+                                  ? "line-through text-muted-foreground"
+                                  : ""
+                              }`}
+                            >
+                              {task.text}
+                            </label>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => startEdit(task)}
+                            >
+                              <Edit size={16} />
                             </Button>
                             <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingId(null)}
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteTask(task.id)}
                             >
-                              Cancelar
+                              <Trash size={16} />
                             </Button>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 w-full">
-                          <Checkbox
-                            checked={task.completed}
-                            onCheckedChange={() => toggleTask(task.id)}
-                            id={`task-${task.id}`}
-                          />
-                          <label
-                            htmlFor={`task-${task.id}`}
-                            className={`text-base leading-snug flex-1 ${
-                              task.completed
-                                ? "line-through text-muted-foreground"
-                                : ""
-                            }`}
-                          >
-                            {task.text}
-                          </label>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => startEdit(task)}
-                          >
-                            <Edit size={16} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteTask(task.id)}
-                          >
-                            <Trash size={16} />
-                          </Button>
-                        </div>
-                      )}
-                    </Card>
-                  ))}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+                        )}
+                      </Card>
+                    ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </div>
 
-      <div className="flex flex-col gap-3 pt-4">
+      <div className="fixed bottom-5 left-5 right-5 flex flex-col gap-4 bg-white shadow-xl rounded-md px-5 py-6 max-h-100">
         <Select
           value={newCategory}
           onValueChange={(val) => setNewCategory(val as string)}
