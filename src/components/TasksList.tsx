@@ -138,7 +138,7 @@ export default function TasksList() {
   const totalTasks = tasks.length;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-0">
+    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-0 pb-20">
       {/* Header */}
       <div className="text-center space-y-3 sm:space-y-4">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 dark:text-slate-100">
@@ -323,9 +323,12 @@ export default function TasksList() {
       </div>
 
       {/* Add Task Form */}
-      <div className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 max-w-2xl mx-auto">
-        <Card className="bg-white dark:bg-slate-800 shadow-2xl border-0 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-          <div className="space-y-3 sm:space-y-4">
+      <Card className="bg-white dark:bg-slate-800 shadow-lg border-0 rounded-2xl">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
+            Adicionar Nova Tarefa
+          </h3>
+          <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <Select
                 value={newCategory}
@@ -367,8 +370,8 @@ export default function TasksList() {
               </Button>
             </div>
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {/* Category Modal */}
       {showCategoryModal && (
