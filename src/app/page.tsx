@@ -1,13 +1,9 @@
-import HeaderTask from "@/components/HeaderTask";
 import TasksList from "@/components/TasksList";
-import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
   return (
-    <main className="p-4 items-center bg-gray-200 min-h-screen flex flex-col text-center">
-      <div className="w-full max-w-2xl">
-        <HeaderTask />
-        <ThemeToggle />
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
         <TasksList />
       </div>
     </main>
