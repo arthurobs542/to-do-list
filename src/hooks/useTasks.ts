@@ -31,13 +31,20 @@ export function useTasks() {
 
     if (savedTasks) {
       try {
-        const parsedTasks = JSON.parse(savedTasks).map((task: any) => ({
-          ...task,
-          createdAt: new Date(task.createdAt),
-          completedAt: task.completedAt
-            ? new Date(task.completedAt)
-            : undefined,
-        }));
+        const parsedTasks = JSON.parse(savedTasks).map(
+          (
+            task: Omit<Task, "createdAt" | "completedAt"> & {
+              createdAt: string;
+              completedAt?: string;
+            }
+          ) => ({
+            ...task,
+            createdAt: new Date(task.createdAt),
+            completedAt: task.completedAt
+              ? new Date(task.completedAt)
+              : undefined,
+          })
+        );
         setTasks(parsedTasks);
       } catch (error) {
         console.error("Erro ao carregar tarefas:", error);
@@ -47,7 +54,7 @@ export function useTasks() {
     if (savedCategories) {
       try {
         const parsedCategories = JSON.parse(savedCategories).map(
-          (cat: any) => ({
+          (cat: Omit<Category, "createdAt"> & { createdAt: string }) => ({
             ...cat,
             createdAt: new Date(cat.createdAt),
           })
