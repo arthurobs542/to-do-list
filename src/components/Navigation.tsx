@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Timer, User, Settings, Home } from "lucide-react";
+import { CheckSquare, Timer, User, Settings } from "lucide-react";
 
 type TabType = "tasks" | "timer" | "profile" | "settings";
 

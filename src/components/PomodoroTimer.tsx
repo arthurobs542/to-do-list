@@ -38,6 +38,7 @@ export default function PomodoroTimer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Configurações dos modos
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const modeConfig = {
     work: {
       duration: settings.work * 60,
@@ -134,7 +135,7 @@ export default function PomodoroTimer() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, timeLeft, mode, completedPomodoros, settings]);
+  }, [isRunning, timeLeft, mode, completedPomodoros, settings, modeConfig]);
 
   // Limpar interval ao desmontar
   useEffect(() => {

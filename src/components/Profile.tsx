@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  User,
   Mail,
   Calendar,
   Target,
@@ -306,7 +305,10 @@ export default function Profile() {
                     size="sm"
                     variant={settings.theme === key ? "default" : "outline"}
                     onClick={() =>
-                      setSettings((prev) => ({ ...prev, theme: key as any }))
+                      setSettings((prev) => ({
+                        ...prev,
+                        theme: key as typeof prev.theme,
+                      }))
                     }
                     className={`w-8 h-8 p-0 ${color}`}
                   />

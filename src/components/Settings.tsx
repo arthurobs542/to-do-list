@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
-  Settings as SettingsIcon,
   Bell,
   Palette,
   Moon,
@@ -15,7 +13,6 @@ import {
   Languages,
   Download,
   Upload,
-  Trash2,
   RefreshCw,
 } from "lucide-react";
 
@@ -171,7 +168,10 @@ export default function Settings() {
                     size="sm"
                     variant={settings.theme === key ? "default" : "outline"}
                     onClick={() =>
-                      setSettings((prev) => ({ ...prev, theme: key as any }))
+                      setSettings((prev) => ({
+                        ...prev,
+                        theme: key as typeof prev.theme,
+                      }))
                     }
                     className={`w-8 h-8 p-0 ${theme.bg} hover:opacity-80`}
                     title={theme.name}
@@ -348,7 +348,7 @@ export default function Settings() {
               onChange={(e) =>
                 setSettings((prev) => ({
                   ...prev,
-                  language: e.target.value as any,
+                  language: e.target.value as "en" | "pt" | "es",
                 }))
               }
               className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
