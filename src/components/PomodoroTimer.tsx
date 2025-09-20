@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -56,7 +56,7 @@ export default function PomodoroTimer() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Funções de notificação e som
-  const requestNotificationPermission = async () => {
+  const requestNotificationPermission = useCallback(async () => {
     if (!("Notification" in window)) {
       console.log("Este navegador não suporta notificações");
       return false;
@@ -76,43 +76,49 @@ export default function PomodoroTimer() {
     }
 
     return false;
-  };
+  }, []);
 
-  const showNotification = (title: string, body: string, icon?: string) => {
-    if (
-      !settings.notificationsEnabled ||
-      Notification.permission !== "granted"
-    ) {
-      return;
-    }
+  const showNotification = useCallback(
+    (title: string, body: string, icon?: string) => {
+      if (
+        !settings.notificationsEnabled ||
+        Notification.permission !== "granted"
+      ) {
+        return;
+      }
 
-    const notification = new Notification(title, {
-      body,
-      icon: icon || "/favicon.ico",
-      badge: "/favicon.ico",
-      tag: "pomodoro-timer",
-      requireInteraction: true,
-    });
+      const notification = new Notification(title, {
+        body,
+        icon: icon || "/favicon.ico",
+        badge: "/favicon.ico",
+        tag: "pomodoro-timer",
+        requireInteraction: true,
+      });
 
-    // Auto fechar após 10 segundos
-    setTimeout(() => {
-      notification.close();
-    }, 10000);
+      // Auto fechar após 10 segundos
+      setTimeout(() => {
+        notification.close();
+      }, 10000);
 
-    // Focar na janela quando clicar na notificação
-    notification.onclick = () => {
-      window.focus();
-      notification.close();
-    };
-  };
+      // Focar na janela quando clicar na notificação
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    },
+    [settings.notificationsEnabled]
+  );
 
-  const playNotificationSound = () => {
+  const playNotificationSound = useCallback(() => {
     if (!settings.soundEnabled) return;
 
     try {
       // Criar um novo contexto de áudio para evitar conflitos
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      const audioContext = new AudioContextClass();
 
       // Criar um tom de notificação simples
       const oscillator = audioContext.createOscillator();
@@ -137,23 +143,29 @@ export default function PomodoroTimer() {
     } catch (error) {
       console.log("Erro ao reproduzir som:", error);
     }
-  };
+  }, [settings.soundEnabled]);
 
   // Funções de localStorage
-  const saveTimerState = (state: Partial<TimerState>) => {
-    const currentState = {
-      timeLeft,
-      isRunning,
-      mode,
-      completedPomodoros,
-      lastUpdate: Date.now(),
-      settings,
-      ...state,
-    };
-    localStorage.setItem("pomodoro-timer-state", JSON.stringify(currentState));
-  };
+  const saveTimerState = useCallback(
+    (state: Partial<TimerState>) => {
+      const currentState = {
+        timeLeft,
+        isRunning,
+        mode,
+        completedPomodoros,
+        lastUpdate: Date.now(),
+        settings,
+        ...state,
+      };
+      localStorage.setItem(
+        "pomodoro-timer-state",
+        JSON.stringify(currentState)
+      );
+    },
+    [timeLeft, isRunning, mode, completedPomodoros, settings]
+  );
 
-  const loadTimerState = (): TimerState | null => {
+  const loadTimerState = useCallback((): TimerState | null => {
     try {
       const saved = localStorage.getItem("pomodoro-timer-state");
       if (!saved) return null;
@@ -210,7 +222,7 @@ export default function PomodoroTimer() {
       console.error("Erro ao carregar estado do timer:", error);
       return null;
     }
-  };
+  }, []);
 
   // Carregar estado inicial do localStorage e verificar permissões
   useEffect(() => {
@@ -237,30 +249,32 @@ export default function PomodoroTimer() {
     if (Notification.permission === "default") {
       requestNotificationPermission();
     }
-  }, []);
+  }, [loadTimerState, requestNotificationPermission]);
 
   // Configurações dos modos
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const modeConfig = {
-    work: {
-      duration: settings.work * 60,
-      label: "Foco",
-      icon: Clock,
-      color: "bg-red-500",
-    },
-    shortBreak: {
-      duration: settings.shortBreak * 60,
-      label: "Pausa Curta",
-      icon: Coffee,
-      color: "bg-green-500",
-    },
-    longBreak: {
-      duration: settings.longBreak * 60,
-      label: "Pausa Longa",
-      icon: Coffee,
-      color: "bg-blue-500",
-    },
-  };
+  const modeConfig = useMemo(
+    () => ({
+      work: {
+        duration: settings.work * 60,
+        label: "Foco",
+        icon: Clock,
+        color: "bg-red-500",
+      },
+      shortBreak: {
+        duration: settings.shortBreak * 60,
+        label: "Pausa Curta",
+        icon: Coffee,
+        color: "bg-green-500",
+      },
+      longBreak: {
+        duration: settings.longBreak * 60,
+        label: "Pausa Longa",
+        icon: Coffee,
+        color: "bg-blue-500",
+      },
+    }),
+    [settings.work, settings.shortBreak, settings.longBreak]
+  );
 
   // Formatar tempo para exibição
   const formatTime = (seconds: number) => {
@@ -384,12 +398,22 @@ export default function PomodoroTimer() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, timeLeft, mode, completedPomodoros, settings, modeConfig]);
+  }, [
+    isRunning,
+    timeLeft,
+    mode,
+    completedPomodoros,
+    settings,
+    modeConfig,
+    playNotificationSound,
+    showNotification,
+    saveTimerState,
+  ]);
 
   // Salvar configurações quando mudarem
   useEffect(() => {
     saveTimerState({ settings });
-  }, [settings]);
+  }, [settings, saveTimerState]);
 
   // Listener para detectar quando a página é fechada/aberta
   useEffect(() => {
@@ -424,7 +448,15 @@ export default function PomodoroTimer() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [timeLeft, isRunning, mode, completedPomodoros, settings]);
+  }, [
+    timeLeft,
+    isRunning,
+    mode,
+    completedPomodoros,
+    settings,
+    loadTimerState,
+    saveTimerState,
+  ]);
 
   // Limpar interval ao desmontar
   useEffect(() => {
