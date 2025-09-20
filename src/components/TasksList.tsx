@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -12,7 +11,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, Trash } from "lucide-react";
+import {
+  Edit,
+  Trash,
+  AlertTriangle,
+  Circle,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+} from "lucide-react";
 
 type Task = {
   id: number;
@@ -22,19 +29,25 @@ type Task = {
 };
 
 export default function TasksList() {
-  const [categories, setCategories] = useState<string[]>(["Geral"]);
+  const categories = ["Alta", "Média", "Baixa"];
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
-  const [newCategory, setNewCategory] = useState<string>("Geral");
+  const [newCategory, setNewCategory] = useState<string>("Média");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
-  const [editCategory, setEditCategory] = useState<string>("Geral");
+  const [editCategory, setEditCategory] = useState<string>("Média");
   const [draggedId, setDraggedId] = useState<number | null>(null);
 
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editCategoryName, setEditCategoryName] = useState("");
+  // Accordion states
+  const [expandedPriorities, setExpandedPriorities] = useState<{
+    [key: string]: boolean;
+  }>({
+    Alta: true,
+    Média: true,
+    Baixa: true,
+  });
+  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
 
   const toggleTask = (id: number) => {
     setTasks((prev) =>
@@ -56,6 +69,7 @@ export default function TasksList() {
       },
     ]);
     setNewTask("");
+    setShowAddTaskModal(false);
   };
 
   const startEdit = (task: Task) => {
@@ -80,6 +94,7 @@ export default function TasksList() {
   };
 
   const onDragStart = (id: number) => setDraggedId(id);
+
   const onDragOver = (e: React.DragEvent, id: number) => {
     e.preventDefault();
     if (draggedId === null || draggedId === id) return;
@@ -92,150 +107,134 @@ export default function TasksList() {
       return updated;
     });
   };
-  const onDragEnd = () => setDraggedId(null);
 
-  // Category handlers
-  const addCategory = () => {
-    const name = newCategoryName.trim();
-    if (name && !categories.includes(name)) {
-      setCategories((prev) => [name, ...prev]);
-      setNewCategory(name);
-    }
-    setNewCategoryName("");
-    setShowCategoryModal(false);
-  };
+  const onDropOnPriority = (e: React.DragEvent, targetPriority: string) => {
+    e.preventDefault();
+    if (draggedId === null) return;
 
-  const startEditCategory = (cat: string) => {
-    setEditingCategory(cat);
-    setEditCategoryName(cat);
-  };
-
-  const saveEditCategory = () => {
-    if (!editingCategory) return;
-    const newName = editCategoryName.trim();
-    if (!newName || categories.includes(newName)) return;
-    setCategories((prev) =>
-      prev.map((cat) => (cat === editingCategory ? newName : cat))
-    );
     setTasks((prev) =>
       prev.map((task) =>
-        task.category === editingCategory
-          ? { ...task, category: newName }
-          : task
+        task.id === draggedId ? { ...task, category: targetPriority } : task
       )
     );
-    setEditingCategory(null);
-    setEditCategoryName("");
+    setDraggedId(null);
   };
 
-  const deleteCategory = (cat: string) => {
-    setCategories((prev) => prev.filter((c) => c !== cat));
-    setTasks((prev) => prev.filter((task) => task.category !== cat));
-    if (newCategory === cat) setNewCategory(categories[0] || "");
+  const onDragEnd = () => setDraggedId(null);
+
+  // Accordion functions
+  const togglePriority = (priority: string) => {
+    setExpandedPriorities((prev) => ({
+      ...prev,
+      [priority]: !prev[priority],
+    }));
+  };
+
+  // Priority helper functions
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case "Alta":
+        return <AlertTriangle className="w-3 h-3 text-red-500" />;
+      case "Média":
+        return <Circle className="w-3 h-3 text-yellow-500" />;
+      case "Baixa":
+        return <AlertTriangle className="w-3 h-3 text-blue-500 rotate-180" />;
+      default:
+        return <Circle className="w-3 h-3 text-gray-500" />;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "Alta":
+        return "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+      case "Média":
+        return "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800";
+      case "Baixa":
+        return "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+      default:
+        return "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800";
+    }
   };
 
   const completedTasks = tasks.filter((task) => task.completed).length;
-  const totalTasks = tasks.length;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-0 pb-20">
+    <div className="max-w-2xl mx-auto space-y-4 px-4 sm:px-0 pb-20">
       {/* Header */}
-      <div className="text-center space-y-3 sm:space-y-4">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 dark:text-slate-100">
-          Minhas Tarefas
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">
+          À fazer
         </h1>
-        <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
-          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <p className="text-sm sm:text-base lg:text-lg font-medium">
-            {completedTasks} de {totalTasks} tarefas concluídas
-          </p>
-        </div>
       </div>
-      {/* Tasks Container */}
-      <div className="space-y-6">
-        <Card className="w-full bg-white dark:bg-slate-800 shadow-xl border-0 rounded-2xl overflow-hidden backdrop-blur-sm">
-          {categories.map((category) => (
-            <div
-              key={category}
-              className="border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+
+      {/* Priority Sections */}
+      <div className="space-y-2">
+        {categories.map((category) => (
+          <div key={category} className="space-y-1">
+            {/* Priority Button */}
+            <button
+              onClick={() => togglePriority(category)}
+              className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors duration-200 ${getPriorityColor(
+                category
+              )} ${
+                draggedId &&
+                tasks.find((t) => t.id === draggedId)?.category !== category
+                  ? "ring-2 ring-blue-400 ring-opacity-50"
+                  : ""
+              }`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => onDropOnPriority(e, category)}
             >
-              {/* Category Header */}
-              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-700/50">
-                {editingCategory === category ? (
-                  <div className="flex items-center gap-3">
-                    <Input
-                      value={editCategoryName}
-                      onChange={(e) => setEditCategoryName(e.target.value)}
-                      className="flex-1 bg-white dark:bg-slate-800"
-                      placeholder="Nome da categoria"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={saveEditCategory}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Salvar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingCategory(null)}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
+              <div className="flex items-center gap-3">
+                {getPriorityIcon(category)}
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 uppercase">
+                  {category}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {
+                    tasks.filter(
+                      (task) => task.category === category && !task.completed
+                    ).length
+                  }
+                </span>
+                {expandedPriorities[category] ? (
+                  <ChevronUp className="w-4 h-4 text-slate-500" />
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-lg font-semibold text-slate-700 dark:text-slate-200 tracking-wide">
-                        {category}
-                      </span>
-                      <span className="text-sm text-slate-500 dark:text-slate-400">
-                        (
-                        {
-                          tasks.filter((task) => task.category === category)
-                            .length
-                        }
-                        )
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => startEditCategory(category)}
-                        className="h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-600"
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteCategory(category)}
-                        className="h-8 w-8 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
-                      >
-                        <Trash size={16} />
-                      </Button>
-                    </div>
-                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-500" />
                 )}
               </div>
-              {/* Tasks List */}
-              <div className="px-6 py-4 space-y-3 min-h-[60px]">
+            </button>
+
+            {/* Tasks List - Collapsible */}
+            {expandedPriorities[category] && (
+              <div
+                className={`ml-4 space-y-2 transition-colors duration-200 ${
+                  draggedId &&
+                  tasks.find((t) => t.id === draggedId)?.category !== category
+                    ? "bg-blue-50 dark:bg-blue-900/10 rounded-lg p-2"
+                    : ""
+                }`}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => onDropOnPriority(e, category)}
+              >
                 {tasks
-                  .filter((task) => task.category === category)
+                  .filter(
+                    (task) => task.category === category && !task.completed
+                  )
                   .map((task) => (
                     <div
                       key={task.id}
-                      className="group p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 cursor-move"
+                      className="group p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 cursor-move"
                       draggable
                       onDragStart={() => onDragStart(task.id)}
                       onDragOver={(e) => onDragOver(e, task.id)}
                       onDragEnd={onDragEnd}
                     >
                       {editingId === task.id ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <Input
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
@@ -249,12 +248,15 @@ export default function TasksList() {
                             }
                           >
                             <SelectTrigger className="w-full bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600">
-                              <SelectValue placeholder="Categoria" />
+                              <SelectValue placeholder="Prioridade" />
                             </SelectTrigger>
                             <SelectContent>
                               {categories.map((cat) => (
                                 <SelectItem key={cat} value={cat}>
-                                  {cat}
+                                  <div className="flex items-center gap-2">
+                                    {getPriorityIcon(cat)}
+                                    <span>Prioridade {cat}</span>
+                                  </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -277,7 +279,7 @@ export default function TasksList() {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                           <Checkbox
                             checked={task.completed}
                             onCheckedChange={() => toggleTask(task.id)}
@@ -286,7 +288,7 @@ export default function TasksList() {
                           />
                           <label
                             htmlFor={`task-${task.id}`}
-                            className={`text-base leading-relaxed flex-1 cursor-pointer ${
+                            className={`text-sm leading-relaxed flex-1 cursor-pointer ${
                               task.completed
                                 ? "line-through text-slate-500 dark:text-slate-400"
                                 : "text-slate-700 dark:text-slate-200"
@@ -299,17 +301,17 @@ export default function TasksList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => startEdit(task)}
-                              className="h-8 w-8 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                              className="h-6 w-6 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                             >
-                              <Edit size={16} />
+                              <Edit size={14} />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteTask(task.id)}
-                              className="h-8 w-8 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                              className="h-6 w-6 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
                             >
-                              <Trash size={16} />
+                              <Trash size={14} />
                             </Button>
                           </div>
                         </div>
@@ -317,94 +319,131 @@ export default function TasksList() {
                     </div>
                   ))}
               </div>
-            </div>
-          ))}
-        </Card>
+            )}
+          </div>
+        ))}
       </div>
 
-      {/* Add Task Form */}
-      <Card className="bg-white dark:bg-slate-800 shadow-lg border-0 rounded-2xl">
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-            Adicionar Nova Tarefa
-          </h3>
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select
-                value={newCategory}
-                onValueChange={(val) => setNewCategory(val as string)}
-              >
-                <SelectTrigger className="flex-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600">
-                  <SelectValue placeholder="Selecionar categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                onClick={() => setShowCategoryModal(true)}
-                className="px-3 sm:px-4 border-slate-300 dark:border-slate-600 text-sm sm:text-base"
-              >
-                Nova Categoria
-              </Button>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Input
-                className="flex-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Escreva uma nova tarefa..."
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addTask()}
-              />
-              <Button
-                onClick={addTask}
-                className="px-4 sm:px-6 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base"
-                disabled={!newTask.trim()}
-              >
-                Adicionar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
+      {/* Completed Tasks Section */}
+      {completedTasks > 0 && (
+        <div className="space-y-2">
+          <button
+            onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+            className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200 uppercase">
+              Feito ({completedTasks})
+            </span>
+            {showCompletedTasks ? (
+              <ChevronUp className="w-4 h-4 text-slate-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-500" />
+            )}
+          </button>
 
-      {/* Category Modal */}
-      {showCategoryModal && (
+          {showCompletedTasks && (
+            <div className="ml-4 space-y-2">
+              {tasks
+                .filter((task) => task.completed)
+                .map((task) => (
+                  <div
+                    key={task.id}
+                    className="group p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 opacity-75"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                      <span className="text-sm text-slate-500 dark:text-slate-400 line-through flex-1">
+                        {task.text}
+                      </span>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteTask(task.id)}
+                          className="h-6 w-6 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                        >
+                          <Trash size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Floating Add Button */}
+      <button
+        onClick={() => setShowAddTaskModal(true)}
+        className="fixed bottom-20 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50"
+      >
+        <Plus className="w-8 h-8" />
+      </button>
+
+      {/* Add Task Modal */}
+      {showAddTaskModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl w-full max-w-md">
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
-              Criar Nova Categoria
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-2xl w-full max-w-md">
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
+              Adicionar Nova Tarefa
             </h2>
-            <Input
-              placeholder="Nome da categoria"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              className="w-full bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 mb-6"
-              onKeyDown={(e) => e.key === "Enter" && addCategory()}
-            />
-            <div className="flex flex-col sm:flex-row gap-3 justify-end">
-              <Button
-                onClick={addCategory}
-                className="bg-green-600 hover:bg-green-700 order-2 sm:order-1"
-                disabled={!newCategoryName.trim()}
-              >
-                Criar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setNewCategoryName("");
-                  setShowCategoryModal(false);
-                }}
-                className="order-1 sm:order-2"
-              >
-                Cancelar
-              </Button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+                  Prioridade
+                </label>
+                <Select
+                  value={newCategory}
+                  onValueChange={(val) => setNewCategory(val as string)}
+                >
+                  <SelectTrigger className="w-full bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600">
+                    <SelectValue placeholder="Selecionar prioridade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        <div className="flex items-center gap-2">
+                          {getPriorityIcon(cat)}
+                          <span>Prioridade {cat}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+                  Descrição da Tarefa
+                </label>
+                <Input
+                  className="w-full bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Escreva uma nova tarefa..."
+                  value={newTask}
+                  onChange={(e) => setNewTask(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addTask()}
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  onClick={addTask}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={!newTask.trim()}
+                >
+                  Adicionar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setNewTask("");
+                    setShowAddTaskModal(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
             </div>
           </div>
         </div>
