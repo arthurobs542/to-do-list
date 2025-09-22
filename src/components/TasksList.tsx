@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/app/contexts/UserContext";
 import {
   Select,
   SelectContent,
@@ -29,6 +30,7 @@ type Task = {
 };
 
 export default function TasksList() {
+  const { addTask: updateUserStats } = useUser();
   const categories = ["Alta", "Média", "Baixa"];
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
@@ -49,15 +51,30 @@ export default function TasksList() {
   const [showCompletedTasks, setShowCompletedTasks] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
 
-  const toggleTask = (id: number) => {
+  const toggleTask = async (id: number) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    const wasCompleted = task.completed;
+    const isNowCompleted = !wasCompleted;
+
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id ? { ...task, completed: !task.completed } : task
       )
     );
+
+    // Update user stats
+    if (!wasCompleted && isNowCompleted) {
+      // Task was just completed
+      await updateUserStats(true);
+    } else if (wasCompleted && !isNowCompleted) {
+      // Task was uncompleted - this is a new task being added
+      await updateUserStats(false);
+    }
   };
 
-  const addTask = () => {
+  const addTask = async () => {
     if (!newTask.trim()) return;
     setTasks((prev) => [
       ...prev,
@@ -68,6 +85,10 @@ export default function TasksList() {
         completed: false,
       },
     ]);
+
+    // Update user stats for adding a new task
+    await updateUserStats(false);
+
     setNewTask("");
     setShowAddTaskModal(false);
   };

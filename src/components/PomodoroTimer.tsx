@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useUser } from "@/app/contexts/UserContext";
 import {
   Play,
   Pause,
@@ -36,6 +37,7 @@ interface TimerState {
 }
 
 export default function PomodoroTimer() {
+  const { addPomodoro } = useUser();
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<TimerMode>("work");
@@ -360,6 +362,11 @@ export default function PomodoroTimer() {
         setTimeLeft(modeConfig[nextMode].duration);
         setCompletedPomodoros(newCompletedPomodoros);
 
+        // Update user stats when pomodoro is completed
+        if (nextMode === "longBreak" || nextMode === "shortBreak") {
+          addPomodoro();
+        }
+
         saveTimerState({
           isRunning: false,
           mode: nextMode,
@@ -408,6 +415,7 @@ export default function PomodoroTimer() {
     playNotificationSound,
     showNotification,
     saveTimerState,
+    addPomodoro,
   ]);
 
   // Salvar configurações quando mudarem
