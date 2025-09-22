@@ -4,67 +4,47 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useUser } from "@/app/contexts/UserContext";
 import {
   Mail,
   Calendar,
   Target,
   Award,
+  Trophy,
+  Flame,
   Edit3,
   Save,
   X,
   Camera,
-  Bell,
-  Palette,
-  Moon,
-  Sun,
+  TrendingUp,
+  CheckCircle,
+  Clock,
+  Zap,
 } from "lucide-react";
 
-interface UserProfile {
-  name: string;
-  email: string;
-  joinDate: string;
-  totalTasks: number;
-  completedTasks: number;
-  pomodorosCompleted: number;
-  streak: number;
-  avatar?: string;
-}
-
-interface Settings {
-  notifications: boolean;
-  darkMode: boolean;
-  theme: "blue" | "green" | "purple" | "red";
-  language: "pt" | "en" | "es";
-}
+const achievementIcons = {
+  Award,
+  Target,
+  Trophy,
+  Flame,
+};
 
 export default function Profile() {
-  const [profile, setProfile] = useState<UserProfile>({
-    name: "Usuário",
-    email: "usuario@exemplo.com",
-    joinDate: "Janeiro 2024",
-    totalTasks: 0,
-    completedTasks: 0,
-    pomodorosCompleted: 0,
-    streak: 0,
-  });
-
-  const [settings, setSettings] = useState<Settings>({
-    notifications: true,
-    darkMode: false,
-    theme: "blue",
-    language: "pt",
-  });
-
+  const { profile, settings, updateProfile, updateSettings, isLoading, error } =
+    useUser();
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState(profile);
+  const [editData, setEditData] = useState({
+    name: profile.name,
+    email: profile.email,
+  });
 
-  const handleSave = () => {
-    setProfile(editData);
+  const handleSave = async () => {
+    await updateProfile(editData);
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setEditData(profile);
+    setEditData({ name: profile.name, email: profile.email });
     setIsEditing(false);
   };
 
@@ -80,6 +60,22 @@ export default function Profile() {
     red: "bg-red-500",
   };
 
+  const unlockedAchievements = profile.achievements.filter((a) => a.unlocked);
+  const lockedAchievements = profile.achievements.filter((a) => !a.unlocked);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 px-4 pb-20">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">
+            Carregando perfil...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 px-4 pb-20">
       {/* Header */}
@@ -87,6 +83,11 @@ export default function Profile() {
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
           Meu Perfil
         </h1>
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+            <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+          </div>
+        )}
       </div>
 
       {/* Avatar e Informações Básicas */}
@@ -95,12 +96,16 @@ export default function Profile() {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             {/* Avatar */}
             <div className="relative">
-              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+              <div
+                className={`w-24 h-24 bg-gradient-to-br ${
+                  themeColors[settings.theme]
+                } rounded-full flex items-center justify-center text-white text-2xl font-bold`}
+              >
                 {profile.name.charAt(0).toUpperCase()}
               </div>
               <Button
                 size="icon"
-                className="absolute -bottom-1 -right-1 w-8 h-8 bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600"
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600"
               >
                 <Camera size={16} />
               </Button>
@@ -111,12 +116,12 @@ export default function Profile() {
               <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
                 {profile.name}
               </h2>
-              <p className="text-slate-600 dark:text-slate-400 mb-1">
-                <Mail size={16} className="inline mr-2" />
+              <p className="text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-center sm:justify-start gap-2">
+                <Mail size={16} />
                 {profile.email}
               </p>
-              <p className="text-slate-600 dark:text-slate-400">
-                <Calendar size={16} className="inline mr-2" />
+              <p className="text-slate-600 dark:text-slate-400 flex items-center justify-center sm:justify-start gap-2">
+                <Calendar size={16} />
                 Membro desde {profile.joinDate}
               </p>
             </div>
@@ -137,10 +142,12 @@ export default function Profile() {
       {/* Estatísticas */}
       <Card className="bg-white dark:bg-slate-800 shadow-lg border-0 rounded-2xl">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+            <TrendingUp size={20} />
             Estatísticas
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {profile.totalTasks}
@@ -176,8 +183,8 @@ export default function Profile() {
           </div>
 
           {/* Taxa de Conclusão */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Taxa de Conclusão
               </span>
@@ -185,9 +192,9 @@ export default function Profile() {
                 {completionRate}%
               </span>
             </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3">
               <div
-                className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                className={`bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500`}
                 style={{ width: `${completionRate}%` }}
               ></div>
             </div>
@@ -198,105 +205,116 @@ export default function Profile() {
       {/* Conquistas */}
       <Card className="bg-white dark:bg-slate-800 shadow-lg border-0 rounded-2xl">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-            Conquistas
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+            <Award size={20} />
+            Conquistas ({unlockedAchievements.length}/
+            {profile.achievements.length})
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-              <Award className="text-yellow-500" size={24} />
+
+          <div className="space-y-4">
+            {/* Conquistas Desbloqueadas */}
+            {unlockedAchievements.length > 0 && (
               <div>
-                <div className="font-medium text-slate-800 dark:text-slate-100">
-                  Primeira Tarefa
-                </div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  Complete sua primeira tarefa
+                <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                  Desbloqueadas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {unlockedAchievements.map((achievement) => {
+                    const IconComponent =
+                      achievementIcons[
+                        achievement.icon as keyof typeof achievementIcons
+                      ] || Award;
+                    return (
+                      <div
+                        key={achievement.id}
+                        className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                      >
+                        <IconComponent
+                          className="text-green-600 dark:text-green-400"
+                          size={24}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-800 dark:text-slate-100">
+                            {achievement.name}
+                          </div>
+                          <div className="text-sm text-slate-600 dark:text-slate-400">
+                            {achievement.description}
+                          </div>
+                          {achievement.unlockedAt && (
+                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                              Desbloqueada em{" "}
+                              {new Date(
+                                achievement.unlockedAt
+                              ).toLocaleDateString("pt-BR")}
+                            </div>
+                          )}
+                        </div>
+                        <CheckCircle
+                          className="text-green-600 dark:text-green-400"
+                          size={20}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-              <Target className="text-green-500" size={24} />
+            )}
+
+            {/* Conquistas Bloqueadas */}
+            {lockedAchievements.length > 0 && (
               <div>
-                <div className="font-medium text-slate-800 dark:text-slate-100">
-                  Foco Total
-                </div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  Complete 10 pomodoros
+                <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                  Em Progresso
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {lockedAchievements.map((achievement) => {
+                    const IconComponent =
+                      achievementIcons[
+                        achievement.icon as keyof typeof achievementIcons
+                      ] || Award;
+                    return (
+                      <div
+                        key={achievement.id}
+                        className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg opacity-60"
+                      >
+                        <IconComponent className="text-slate-400" size={24} />
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-600 dark:text-slate-400">
+                            {achievement.name}
+                          </div>
+                          <div className="text-sm text-slate-500 dark:text-slate-500">
+                            {achievement.description}
+                          </div>
+                        </div>
+                        <Clock className="text-slate-400" size={20} />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </Card>
 
-      {/* Configurações */}
+      {/* Configurações Rápidas */}
       <Card className="bg-white dark:bg-slate-800 shadow-lg border-0 rounded-2xl">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-            Configurações
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+            <Zap size={20} />
+            Configurações Rápidas
           </h3>
+
           <div className="space-y-4">
-            {/* Notificações */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Bell
-                  size={20}
-                  className="text-slate-600 dark:text-slate-400"
-                />
-                <span className="text-slate-700 dark:text-slate-300">
-                  Notificações
-                </span>
-              </div>
-              <Button
-                variant={settings.notifications ? "default" : "outline"}
-                size="sm"
-                onClick={() =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    notifications: !prev.notifications,
-                  }))
-                }
-              >
-                {settings.notifications ? "Ativo" : "Inativo"}
-              </Button>
-            </div>
-
-            {/* Modo Escuro */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {settings.darkMode ? (
-                  <Moon
-                    size={20}
-                    className="text-slate-600 dark:text-slate-400"
-                  />
-                ) : (
-                  <Sun
-                    size={20}
-                    className="text-slate-600 dark:text-slate-400"
-                  />
-                )}
-                <span className="text-slate-700 dark:text-slate-300">
-                  Modo Escuro
-                </span>
-              </div>
-              <Button
-                variant={settings.darkMode ? "default" : "outline"}
-                size="sm"
-                onClick={() =>
-                  setSettings((prev) => ({ ...prev, darkMode: !prev.darkMode }))
-                }
-              >
-                {settings.darkMode ? "Ativo" : "Inativo"}
-              </Button>
-            </div>
-
             {/* Tema */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Palette
-                  size={20}
-                  className="text-slate-600 dark:text-slate-400"
-                />
-                <span className="text-slate-700 dark:text-slate-300">Tema</span>
+              <div>
+                <div className="text-slate-700 dark:text-slate-300 font-medium">
+                  Tema de Cores
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Personalize a aparência do app
+                </div>
               </div>
               <div className="flex gap-2">
                 {Object.entries(themeColors).map(([key, color]) => (
@@ -305,15 +323,34 @@ export default function Profile() {
                     size="sm"
                     variant={settings.theme === key ? "default" : "outline"}
                     onClick={() =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        theme: key as typeof prev.theme,
-                      }))
+                      updateSettings({ theme: key as typeof settings.theme })
                     }
-                    className={`w-8 h-8 p-0 ${color}`}
+                    className={`w-8 h-8 p-0 ${color} hover:opacity-80`}
+                    title={`Tema ${key}`}
                   />
                 ))}
               </div>
+            </div>
+
+            {/* Notificações */}
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-slate-700 dark:text-slate-300 font-medium">
+                  Notificações
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Receber alertas do sistema
+                </div>
+              </div>
+              <Button
+                variant={settings.notifications ? "default" : "outline"}
+                size="sm"
+                onClick={() =>
+                  updateSettings({ notifications: !settings.notifications })
+                }
+              >
+                {settings.notifications ? "Ativo" : "Inativo"}
+              </Button>
             </div>
           </div>
         </div>
@@ -337,6 +374,7 @@ export default function Profile() {
                     setEditData((prev) => ({ ...prev, name: e.target.value }))
                   }
                   className="w-full"
+                  placeholder="Seu nome"
                 />
               </div>
               <div>
@@ -349,6 +387,8 @@ export default function Profile() {
                     setEditData((prev) => ({ ...prev, email: e.target.value }))
                   }
                   className="w-full"
+                  placeholder="seu@email.com"
+                  type="email"
                 />
               </div>
             </div>
@@ -356,11 +396,16 @@ export default function Profile() {
               <Button
                 onClick={handleSave}
                 className="bg-green-600 hover:bg-green-700"
+                disabled={isLoading}
               >
                 <Save size={16} className="mr-2" />
-                Salvar
+                {isLoading ? "Salvando..." : "Salvar"}
               </Button>
-              <Button variant="outline" onClick={handleCancel}>
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isLoading}
+              >
                 <X size={16} className="mr-2" />
                 Cancelar
               </Button>
