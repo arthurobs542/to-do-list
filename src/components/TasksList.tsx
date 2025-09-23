@@ -55,7 +55,6 @@ export default function TasksList() {
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
 
-  // Accordion states
   const [expandedPriorities, setExpandedPriorities] = useState<{
     [key: string]: boolean;
   }>({
@@ -63,10 +62,123 @@ export default function TasksList() {
     Média: true,
     Baixa: true,
   });
-  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
+  const [showCompletedTasks, setShowCompletedTasks] = useState(true);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
 
-  // Load activity log from localStorage on component mount
+  useEffect(() => {
+    const savedTasks = localStorage.getItem("tasks");
+    const backupTasks = localStorage.getItem("tasks_backup");
+
+    if (savedTasks) {
+      try {
+        const parsedTasks = JSON.parse(savedTasks) as Task[];
+        console.log("Loading tasks from localStorage:", parsedTasks);
+        setTasks(parsedTasks);
+      } catch (error) {
+        console.error("Error loading tasks:", error);
+        // Try backup if main fails
+        if (backupTasks) {
+          try {
+            const parsedBackup = JSON.parse(backupTasks) as Task[];
+            console.log("Loading backup tasks:", parsedBackup);
+            setTasks(parsedBackup);
+          } catch (backupError) {
+            console.error("Error loading backup tasks:", backupError);
+          }
+        }
+      }
+    } else if (backupTasks) {
+      // If main key doesn't exist, try backup
+      try {
+        const parsedBackup = JSON.parse(backupTasks) as Task[];
+        console.log("Loading backup tasks (main not found):", parsedBackup);
+        setTasks(parsedBackup);
+      } catch (error) {
+        console.error("Error loading backup tasks:", error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      console.log("Saving tasks to localStorage:", tasks);
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      // Also save to a backup key
+      localStorage.setItem("tasks_backup", JSON.stringify(tasks));
+    }
+  }, [tasks]);
+
+  // Listen for page visibility changes and storage events
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible again, reload tasks from localStorage
+        const savedTasks = localStorage.getItem("tasks");
+        const backupTasks = localStorage.getItem("tasks_backup");
+
+        if (savedTasks) {
+          try {
+            const parsedTasks = JSON.parse(savedTasks) as Task[];
+            console.log("Page became visible, reloading tasks:", parsedTasks);
+            setTasks(parsedTasks);
+          } catch (error) {
+            console.error("Error reloading tasks on visibility change:", error);
+            // Try backup if main fails
+            if (backupTasks) {
+              try {
+                const parsedBackup = JSON.parse(backupTasks) as Task[];
+                console.log(
+                  "Loading backup tasks on visibility change:",
+                  parsedBackup
+                );
+                setTasks(parsedBackup);
+              } catch (backupError) {
+                console.error(
+                  "Error loading backup tasks on visibility change:",
+                  backupError
+                );
+              }
+            }
+          }
+        } else if (backupTasks) {
+          try {
+            const parsedBackup = JSON.parse(backupTasks) as Task[];
+            console.log(
+              "Loading backup tasks on visibility change (main not found):",
+              parsedBackup
+            );
+            setTasks(parsedBackup);
+          } catch (error) {
+            console.error(
+              "Error loading backup tasks on visibility change:",
+              error
+            );
+          }
+        }
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "tasks" && e.newValue) {
+        try {
+          const parsedTasks = JSON.parse(e.newValue) as Task[];
+          console.log("Storage change detected, reloading tasks:", parsedTasks);
+          setTasks(parsedTasks);
+        } catch (error) {
+          console.error("Error reloading tasks on storage change:", error);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
   useEffect(() => {
     const savedLog = localStorage.getItem("taskActivityLog");
     if (savedLog) {
@@ -88,12 +200,45 @@ export default function TasksList() {
     }
   }, []);
 
-  // Save activity log to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("taskActivityLog", JSON.stringify(activityLog));
   }, [activityLog]);
 
-  // Function to add activity to log
+  useEffect(() => {
+    const savedExpandedPriorities = localStorage.getItem("expandedPriorities");
+    if (savedExpandedPriorities) {
+      try {
+        const parsedPriorities = JSON.parse(savedExpandedPriorities);
+        setExpandedPriorities(parsedPriorities);
+      } catch (error) {
+        console.error("Error loading expanded priorities:", error);
+      }
+    }
+
+    const savedShowCompleted = localStorage.getItem("showCompletedTasks");
+    if (savedShowCompleted) {
+      try {
+        setShowCompletedTasks(JSON.parse(savedShowCompleted));
+      } catch (error) {
+        console.error("Error loading show completed tasks:", error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "expandedPriorities",
+      JSON.stringify(expandedPriorities)
+    );
+  }, [expandedPriorities]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "showCompletedTasks",
+      JSON.stringify(showCompletedTasks)
+    );
+  }, [showCompletedTasks]);
+
   const addActivityLog = (
     action: ActivityLog["action"],
     taskText: string,
@@ -180,7 +325,6 @@ export default function TasksList() {
       )
     );
 
-    // Log the activity if there were changes
     if (oldText !== editText || oldCategory !== editCategory) {
       addActivityLog("edited", editText, editCategory, oldText, oldCategory);
     }
@@ -194,7 +338,6 @@ export default function TasksList() {
 
     setTasks((prev) => prev.filter((task) => task.id !== id));
 
-    // Log the activity
     addActivityLog("deleted", task.text, task.category);
   };
 

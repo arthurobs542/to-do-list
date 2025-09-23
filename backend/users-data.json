@@ -6,8 +6,8 @@
       "email": "Arthur@teste.com",
       "avatar": null,
       "joinDate": "setembro de 2025",
-      "totalTasks": 0,
-      "completedTasks": 0,
+      "totalTasks": 10,
+      "completedTasks": 5,
       "pomodorosCompleted": 0,
       "streak": 0,
       "achievements": [
@@ -56,11 +56,11 @@
     "profile": {
       "id": "user_1758544085701_x00ocegkp",
       "name": "Arthur",
-      "email": "teste@teste.com",
+      "email": "arthur@teste.com",
       "avatar": null,
       "joinDate": "setembro de 2025",
-      "totalTasks": 2,
-      "completedTasks": 1,
+      "totalTasks": 9,
+      "completedTasks": 4,
       "pomodorosCompleted": 0,
       "streak": 0,
       "achievements": [
@@ -207,6 +207,59 @@
       "taskReminders": true,
       "autoSave": true,
       "theme": "purple",
+      "language": "pt",
+      "volume": 50
+    }
+  },
+  "user_1758640231253_7kvnh6jw5": {
+    "profile": {
+      "id": "user_1758640231253_7kvnh6jw5",
+      "name": "Usuário",
+      "email": "usuario@exemplo.com",
+      "avatar": null,
+      "joinDate": "setembro de 2025",
+      "totalTasks": 0,
+      "completedTasks": 0,
+      "pomodorosCompleted": 0,
+      "streak": 0,
+      "achievements": [
+        {
+          "id": "first-task",
+          "name": "Primeira Tarefa",
+          "description": "Complete sua primeira tarefa",
+          "icon": "Award",
+          "unlocked": false
+        },
+        {
+          "id": "focus-master",
+          "name": "Foco Total",
+          "description": "Complete 10 pomodoros",
+          "icon": "Target",
+          "unlocked": false
+        },
+        {
+          "id": "task-master",
+          "name": "Mestre das Tarefas",
+          "description": "Complete 50 tarefas",
+          "icon": "Trophy",
+          "unlocked": false
+        },
+        {
+          "id": "streak-keeper",
+          "name": "Sequência Perfeita",
+          "description": "Mantenha uma sequência de 7 dias",
+          "icon": "Flame",
+          "unlocked": false
+        }
+      ]
+    },
+    "settings": {
+      "notifications": true,
+      "soundEnabled": true,
+      "pomodoroNotifications": true,
+      "taskReminders": true,
+      "autoSave": true,
+      "theme": "blue",
       "language": "pt",
       "volume": 50
     }
