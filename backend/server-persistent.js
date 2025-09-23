@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
+const { Pool } = require("pg");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,10 +11,34 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Arquivo para salvar dados
+// Configuração do banco de dados
+let pool = null;
+
+// Função para conectar ao banco
+async function connectToDatabase() {
+  try {
+    if (process.env.DATABASE_URL) {
+      // Railway PostgreSQL
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      });
+      console.log("✅ Conectado ao PostgreSQL do Railway");
+    } else {
+      // Fallback para arquivo local
+      console.log("⚠️  Usando arquivo local (modo desenvolvimento)");
+    }
+  } catch (error) {
+    console.error("❌ Erro na conexão com banco:", error);
+  }
+}
+
+// Arquivo para salvar dados (fallback)
 const DATA_FILE = path.join(__dirname, "users-data.json");
 
-// Função para carregar dados
+// Função para carregar dados (fallback)
 function loadUsers() {
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -26,7 +51,7 @@ function loadUsers() {
   return {};
 }
 
-// Função para salvar dados
+// Função para salvar dados (fallback)
 function saveUsers(users) {
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2));
@@ -35,7 +60,7 @@ function saveUsers(users) {
   }
 }
 
-// Carregar dados existentes
+// Carregar dados existentes (fallback)
 let users = loadUsers();
 
 // ROTAS DA API
@@ -253,12 +278,20 @@ app.get("/", (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`📱 API disponível em: http://localhost:${PORT}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`💾 Dados salvos em: ${DATA_FILE}`);
-  console.log(`👥 Usuários carregados: ${Object.keys(users).length}`);
+
+  // Conectar ao banco
+  await connectToDatabase();
+
+  if (pool) {
+    console.log(`🗄️  Banco: PostgreSQL (Railway)`);
+  } else {
+    console.log(`💾 Dados salvos em: ${DATA_FILE}`);
+    console.log(`👥 Usuários carregados: ${Object.keys(users).length}`);
+  }
 });
 
 // Tratamento de erros não capturados
