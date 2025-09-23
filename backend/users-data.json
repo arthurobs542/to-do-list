@@ -157,5 +157,58 @@
       "language": "pt",
       "volume": 50
     }
+  },
+  "user_1758640003939_12uus0dm0": {
+    "profile": {
+      "id": "user_1758640003939_12uus0dm0",
+      "name": "Arthur",
+      "email": "arthur@teste.com",
+      "avatar": null,
+      "joinDate": "setembro de 2025",
+      "totalTasks": 2,
+      "completedTasks": 1,
+      "pomodorosCompleted": 0,
+      "streak": 0,
+      "achievements": [
+        {
+          "id": "first-task",
+          "name": "Primeira Tarefa",
+          "description": "Complete sua primeira tarefa",
+          "icon": "Award",
+          "unlocked": false
+        },
+        {
+          "id": "focus-master",
+          "name": "Foco Total",
+          "description": "Complete 10 pomodoros",
+          "icon": "Target",
+          "unlocked": false
+        },
+        {
+          "id": "task-master",
+          "name": "Mestre das Tarefas",
+          "description": "Complete 50 tarefas",
+          "icon": "Trophy",
+          "unlocked": false
+        },
+        {
+          "id": "streak-keeper",
+          "name": "Sequência Perfeita",
+          "description": "Mantenha uma sequência de 7 dias",
+          "icon": "Flame",
+          "unlocked": false
+        }
+      ]
+    },
+    "settings": {
+      "notifications": true,
+      "soundEnabled": true,
+      "pomodoroNotifications": true,
+      "taskReminders": true,
+      "autoSave": true,
+      "theme": "purple",
+      "language": "pt",
+      "volume": 50
+    }
   }
 }

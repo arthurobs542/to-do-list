@@ -132,7 +132,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [settings]);
 
   const createUserOnBackend = useCallback(
-    async (userId: string) => {
+    async (
+      userId: string,
+      userProfile: UserProfile,
+      userSettings: AppSettings
+    ) => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/users`, {
           method: "POST",
@@ -141,8 +145,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({
             id: userId,
-            profile,
-            settings,
+            profile: userProfile,
+            settings: userSettings,
           }),
         });
 
@@ -153,7 +157,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.error("Error creating user on backend:", error);
       }
     },
-    [profile, settings]
+    [] // Removed profile and settings dependencies
   );
 
   const syncWithBackend = useCallback(async () => {
@@ -192,7 +196,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
         });
       } else if (response.status === 404) {
         // User doesn't exist on backend, create them
-        await createUserOnBackend(userId);
+        // Get current state at the time of sync
+        const currentProfile = JSON.parse(
+          localStorage.getItem("focus-app-profile") || "{}"
+        );
+        const currentSettings = JSON.parse(
+          localStorage.getItem("focus-app-settings") || "{}"
+        );
+        await createUserOnBackend(userId, currentProfile, currentSettings);
       }
     } catch (error) {
       console.error("Error syncing with backend:", error);
@@ -235,7 +246,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
 
     loadData();
-  }, [setTheme, syncWithBackend]);
+  }, [setTheme, syncWithBackend]); // Added syncWithBackend back but it's now stable
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     try {
