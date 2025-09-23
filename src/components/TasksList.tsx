@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,10 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
+  Clock,
+  CheckCircle,
+  XCircle,
+  FileText,
 } from "lucide-react";
 
 type Task = {
@@ -27,6 +31,16 @@ type Task = {
   text: string;
   category: string;
   completed: boolean;
+};
+
+type ActivityLog = {
+  id: number;
+  timestamp: Date;
+  action: "created" | "completed" | "uncompleted" | "edited" | "deleted";
+  taskText: string;
+  taskCategory: string;
+  oldText?: string;
+  oldCategory?: string;
 };
 
 export default function TasksList() {
@@ -39,6 +53,7 @@ export default function TasksList() {
   const [editText, setEditText] = useState("");
   const [editCategory, setEditCategory] = useState<string>("Média");
   const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
 
   // Accordion states
   const [expandedPriorities, setExpandedPriorities] = useState<{
@@ -50,6 +65,53 @@ export default function TasksList() {
   });
   const [showCompletedTasks, setShowCompletedTasks] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+
+  // Load activity log from localStorage on component mount
+  useEffect(() => {
+    const savedLog = localStorage.getItem("taskActivityLog");
+    if (savedLog) {
+      try {
+        const parsedLog = (
+          JSON.parse(savedLog) as Array<
+            Omit<ActivityLog, "timestamp"> & {
+              timestamp: string | number | Date;
+            }
+          >
+        ).map((log) => ({
+          ...log,
+          timestamp: new Date(log.timestamp),
+        }));
+        setActivityLog(parsedLog);
+      } catch (error) {
+        console.error("Error loading activity log:", error);
+      }
+    }
+  }, []);
+
+  // Save activity log to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("taskActivityLog", JSON.stringify(activityLog));
+  }, [activityLog]);
+
+  // Function to add activity to log
+  const addActivityLog = (
+    action: ActivityLog["action"],
+    taskText: string,
+    taskCategory: string,
+    oldText?: string,
+    oldCategory?: string
+  ) => {
+    const newActivity: ActivityLog = {
+      id: Date.now(),
+      timestamp: new Date(),
+      action,
+      taskText,
+      taskCategory,
+      oldText,
+      oldCategory,
+    };
+    setActivityLog((prev) => [newActivity, ...prev.slice(0, 49)]); // Keep only last 50 activities
+  };
 
   const toggleTask = async (id: number) => {
     const task = tasks.find((t) => t.id === id);
@@ -68,26 +130,30 @@ export default function TasksList() {
     if (!wasCompleted && isNowCompleted) {
       // Task was just completed
       await updateUserStats(true);
+      addActivityLog("completed", task.text, task.category);
     } else if (wasCompleted && !isNowCompleted) {
       // Task was uncompleted - this is a new task being added
       await updateUserStats(false);
+      addActivityLog("uncompleted", task.text, task.category);
     }
   };
 
   const addTask = async () => {
     if (!newTask.trim()) return;
-    setTasks((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        text: newTask,
-        category: newCategory,
-        completed: false,
-      },
-    ]);
+    const newTaskObj = {
+      id: Date.now(),
+      text: newTask,
+      category: newCategory,
+      completed: false,
+    };
+
+    setTasks((prev) => [...prev, newTaskObj]);
 
     // Update user stats for adding a new task
     await updateUserStats(false);
+
+    // Log the activity
+    addActivityLog("created", newTask, newCategory);
 
     setNewTask("");
     setShowAddTaskModal(false);
@@ -100,6 +166,12 @@ export default function TasksList() {
   };
 
   const saveEdit = (id: number) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    const oldText = task.text;
+    const oldCategory = task.category;
+
     setTasks((prev) =>
       prev.map((task) =>
         task.id === id
@@ -107,11 +179,23 @@ export default function TasksList() {
           : task
       )
     );
+
+    // Log the activity if there were changes
+    if (oldText !== editText || oldCategory !== editCategory) {
+      addActivityLog("edited", editText, editCategory, oldText, oldCategory);
+    }
+
     setEditingId(null);
   };
 
   const deleteTask = (id: number) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
     setTasks((prev) => prev.filter((task) => task.id !== id));
+
+    // Log the activity
+    addActivityLog("deleted", task.text, task.category);
   };
 
   const onDragStart = (id: number) => setDraggedId(id);
@@ -179,6 +263,61 @@ export default function TasksList() {
   };
 
   const completedTasks = tasks.filter((task) => task.completed).length;
+
+  // Activity log helper functions
+  const getActivityIcon = (action: ActivityLog["action"]) => {
+    switch (action) {
+      case "created":
+        return <Plus className="w-3 h-3 text-green-500" />;
+      case "completed":
+        return <CheckCircle className="w-3 h-3 text-green-600" />;
+      case "uncompleted":
+        return <XCircle className="w-3 h-3 text-orange-500" />;
+      case "edited":
+        return <Edit className="w-3 h-3 text-blue-500" />;
+      case "deleted":
+        return <Trash className="w-3 h-3 text-red-500" />;
+      default:
+        return <FileText className="w-3 h-3 text-gray-500" />;
+    }
+  };
+
+  const getActivityText = (log: ActivityLog) => {
+    switch (log.action) {
+      case "created":
+        return `Criou a tarefa "${log.taskText}"`;
+      case "completed":
+        return `Concluiu a tarefa "${log.taskText}"`;
+      case "uncompleted":
+        return `Desmarcou a tarefa "${log.taskText}"`;
+      case "edited":
+        if (log.oldText && log.oldText !== log.taskText) {
+          return `Editou "${log.oldText}" para "${log.taskText}"`;
+        }
+        if (log.oldCategory && log.oldCategory !== log.taskCategory) {
+          return `Alterou prioridade de "${log.taskText}" de ${log.oldCategory} para ${log.taskCategory}`;
+        }
+        return `Editou a tarefa "${log.taskText}"`;
+      case "deleted":
+        return `Removeu a tarefa "${log.taskText}"`;
+      default:
+        return `Ação desconhecida em "${log.taskText}"`;
+    }
+  };
+
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return "Agora mesmo";
+    if (minutes < 60) return `${minutes}m atrás`;
+    if (hours < 24) return `${hours}h atrás`;
+    if (days < 7) return `${days}d atrás`;
+    return date.toLocaleDateString("pt-BR");
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 px-4 sm:px-0 pb-20">
@@ -345,54 +484,101 @@ export default function TasksList() {
         ))}
       </div>
 
-      {/* Completed Tasks Section */}
-      {completedTasks > 0 && (
-        <div className="space-y-2">
-          <button
-            onClick={() => setShowCompletedTasks(!showCompletedTasks)}
-            className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          >
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-200 uppercase">
-              Feito ({completedTasks})
-            </span>
-            {showCompletedTasks ? (
-              <ChevronUp className="w-4 h-4 text-slate-500" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-slate-500" />
-            )}
-          </button>
+      {/* Completed Tasks Section - Always Visible */}
+      <div className="space-y-2">
+        <button
+          onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+          className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+        >
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 uppercase">
+            Feito ({completedTasks})
+          </span>
+          {showCompletedTasks ? (
+            <ChevronUp className="w-4 h-4 text-slate-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-500" />
+          )}
+        </button>
 
-          {showCompletedTasks && (
-            <div className="ml-4 space-y-2">
-              {tasks
-                .filter((task) => task.completed)
-                .map((task) => (
-                  <div
-                    key={task.id}
-                    className="group p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 opacity-75"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <span className="text-sm text-slate-500 dark:text-slate-400 line-through flex-1">
-                        {task.text}
-                      </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteTask(task.id)}
-                          className="h-6 w-6 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
-                        >
-                          <Trash size={14} />
-                        </Button>
-                      </div>
+        {showCompletedTasks && (
+          <div className="ml-4 space-y-2">
+            {tasks
+              .filter((task) => task.completed)
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className="group p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 opacity-75"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400 line-through flex-1">
+                      {task.text}
+                    </span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteTask(task.id)}
+                        className="h-6 w-6 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                      >
+                        <Trash size={14} />
+                      </Button>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+
+      {/* Activity History - Only show when there are completed tasks */}
+      {completedTasks > 0 && activityLog.length > 0 && (
+        <div className="mt-8 space-y-3">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              Histórico de Atividades
+            </h3>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 max-h-64 overflow-y-auto">
+            <div className="space-y-3">
+              {activityLog.slice(0, 10).map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    {getActivityIcon(log.action)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+                      {getActivityText(log)}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {formatTime(log.timestamp)}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">
+                        {log.taskCategory}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+
+            {activityLog.length > 10 && (
+              <div className="text-center mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Mostrando as últimas 10 atividades de {activityLog.length}{" "}
+                  total
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

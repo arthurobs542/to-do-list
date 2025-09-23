@@ -415,13 +415,13 @@ export default function PomodoroTimer() {
     playNotificationSound,
     showNotification,
     saveTimerState,
-    addPomodoro,
+    // Removed addPomodoro dependency to prevent loops
   ]);
 
   // Salvar configurações quando mudarem
   useEffect(() => {
     saveTimerState({ settings });
-  }, [settings, saveTimerState]);
+  }, [settings]); // Removed saveTimerState dependency
 
   // Listener para detectar quando a página é fechada/aberta
   useEffect(() => {

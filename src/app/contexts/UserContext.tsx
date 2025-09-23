@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useCallback,
   ReactNode,
 } from "react";
 import { useTheme } from "next-themes";
@@ -121,6 +122,97 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const { setTheme } = useTheme();
 
+  // Save to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem("focus-app-profile", JSON.stringify(profile));
+  }, [profile]);
+
+  useEffect(() => {
+    localStorage.setItem("focus-app-settings", JSON.stringify(settings));
+  }, [settings]);
+
+  const createUserOnBackend = useCallback(
+    async (
+      userId: string,
+      userProfile: UserProfile,
+      userSettings: AppSettings
+    ) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: userId,
+            profile: userProfile,
+            settings: userSettings,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create user on backend");
+        }
+      } catch (error) {
+        console.error("Error creating user on backend:", error);
+      }
+    },
+    [] // Removed profile and settings dependencies
+  );
+
+  const syncWithBackend = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Get user ID from localStorage or create one
+      let userId = localStorage.getItem("focus-app-user-id");
+      if (!userId) {
+        userId = `user_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+        localStorage.setItem("focus-app-user-id", userId);
+      }
+
+      // Try to fetch user data from backend
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`);
+
+      if (response.ok) {
+        const userData = await response.json();
+
+        // Only update if data is different to prevent unnecessary re-renders
+        setProfile((prev) => {
+          const newProfile = { ...prev, ...userData.profile };
+          return JSON.stringify(prev) !== JSON.stringify(newProfile)
+            ? newProfile
+            : prev;
+        });
+
+        setSettings((prev) => {
+          const newSettings = { ...prev, ...userData.settings };
+          return JSON.stringify(prev) !== JSON.stringify(newSettings)
+            ? newSettings
+            : prev;
+        });
+      } else if (response.status === 404) {
+        // User doesn't exist on backend, create them
+        // Get current state at the time of sync
+        const currentProfile = JSON.parse(
+          localStorage.getItem("focus-app-profile") || "{}"
+        );
+        const currentSettings = JSON.parse(
+          localStorage.getItem("focus-app-settings") || "{}"
+        );
+        await createUserOnBackend(userId, currentProfile, currentSettings);
+      }
+    } catch (error) {
+      console.error("Error syncing with backend:", error);
+      // Don't set error for network issues, just continue with localStorage
+    } finally {
+      setIsLoading(false);
+    }
+  }, [createUserOnBackend]);
+
   // Load data from localStorage on mount
   useEffect(() => {
     const loadData = async () => {
@@ -154,71 +246,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
 
     loadData();
-  }, [setTheme]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem("focus-app-profile", JSON.stringify(profile));
-  }, [profile]);
-
-  useEffect(() => {
-    localStorage.setItem("focus-app-settings", JSON.stringify(settings));
-  }, [settings]);
-
-  const syncWithBackend = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Get user ID from localStorage or create one
-      let userId = localStorage.getItem("focus-app-user-id");
-      if (!userId) {
-        userId = `user_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`;
-        localStorage.setItem("focus-app-user-id", userId);
-      }
-
-      // Try to fetch user data from backend
-      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`);
-
-      if (response.ok) {
-        const userData = await response.json();
-        setProfile((prev) => ({ ...prev, ...userData.profile }));
-        setSettings((prev) => ({ ...prev, ...userData.settings }));
-      } else if (response.status === 404) {
-        // User doesn't exist on backend, create them
-        await createUserOnBackend(userId);
-      }
-    } catch (error) {
-      console.error("Error syncing with backend:", error);
-      // Don't set error for network issues, just continue with localStorage
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const createUserOnBackend = async (userId: string) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: userId,
-          profile,
-          settings,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create user on backend");
-      }
-    } catch (error) {
-      console.error("Error creating user on backend:", error);
-    }
-  };
+  }, [setTheme, syncWithBackend]); // Added syncWithBackend back but it's now stable
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     try {
@@ -253,8 +281,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const newSettings = { ...settings, ...updates };
       setSettings(newSettings);
 
-      // Apply theme changes to next-themes
-      if (updates.theme) {
+      // Apply theme changes to next-themes only if theme actually changed
+      if (updates.theme && updates.theme !== settings.theme) {
         setTheme(updates.theme);
       }
 
